@@ -9,6 +9,7 @@ import {
   Field,
   Ctx,
   ObjectType,
+  Query,
 } from "type-graphql";
 import { MyContext } from "src/types";
 
@@ -32,17 +33,52 @@ class FieldError {
 class UserResponse {
   @Field(() => [FieldError], { nullable: true })
   errors?: FieldError[];
-  @Field()
+  @Field({ nullable: true })
   user?: User;
 }
 
 @Resolver()
 export class UserResolver {
-  @Mutation(() => User)
+  @Mutation(() => UserResponse)
   async register(
     @Arg("options", () => UsernamePasswordInput) options: UsernamePasswordInput,
     @Ctx() { em }: MyContext
-  ) {
+  ): Promise<UserResponse> {
+    if (options.username.length <= 2) {
+      return {
+        errors: [
+          {
+            field: "username",
+            message: "length must be greater than 2",
+          },
+        ],
+      };
+    }
+
+    if (options.password.length <= 3) {
+      return {
+        errors: [
+          {
+            field: "username",
+            message: "length must be greater than 3",
+          },
+        ],
+      };
+    }
+
+    const existingUser = await em.findOne(User, { username: options.username });
+    if (existingUser) {
+      return {
+        errors: [
+          {
+            field: "username",
+            message:
+              "user already exists, please use a unique name to register.",
+          },
+        ],
+      };
+    }
+
     const hashedpassword = await argon2.hash(options.password);
     console.log("Password Has was: " + hashedpassword);
     const user = em.create(User, {
@@ -50,7 +86,7 @@ export class UserResolver {
       password: hashedpassword,
     });
     await em.persistAndFlush(user);
-    return user;
+    return { user };
   }
 
   @Mutation(() => UserResponse)
@@ -86,5 +122,10 @@ export class UserResolver {
     return {
       user,
     };
+  }
+
+  @Query(() => [User])
+  users(@Ctx() { em }: MyContext): Promise<User[]> {
+    return em.find(User, {});
   }
 }

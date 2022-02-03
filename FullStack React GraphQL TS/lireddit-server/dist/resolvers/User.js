@@ -52,7 +52,7 @@ __decorate([
     __metadata("design:type", Array)
 ], UserResponse.prototype, "errors", void 0);
 __decorate([
-    (0, type_graphql_1.Field)(),
+    (0, type_graphql_1.Field)({ nullable: true }),
     __metadata("design:type", User_1.User)
 ], UserResponse.prototype, "user", void 0);
 UserResponse = __decorate([
@@ -60,6 +60,37 @@ UserResponse = __decorate([
 ], UserResponse);
 let UserResolver = class UserResolver {
     async register(options, { em }) {
+        if (options.username.length <= 2) {
+            return {
+                errors: [
+                    {
+                        field: "username",
+                        message: "length must be greater than 2",
+                    },
+                ],
+            };
+        }
+        if (options.password.length <= 3) {
+            return {
+                errors: [
+                    {
+                        field: "username",
+                        message: "length must be greater than 3",
+                    },
+                ],
+            };
+        }
+        const existingUser = await em.findOne(User_1.User, { username: options.username });
+        if (existingUser) {
+            return {
+                errors: [
+                    {
+                        field: "username",
+                        message: "user already exists, please use a unique name to register.",
+                    },
+                ],
+            };
+        }
         const hashedpassword = await argon2_1.default.hash(options.password);
         console.log("Password Has was: " + hashedpassword);
         const user = em.create(User_1.User, {
@@ -67,7 +98,7 @@ let UserResolver = class UserResolver {
             password: hashedpassword,
         });
         await em.persistAndFlush(user);
-        return user;
+        return { user };
     }
     async login(options, { em }) {
         const user = await em.findOne(User_1.User, {
@@ -98,9 +129,12 @@ let UserResolver = class UserResolver {
             user,
         };
     }
+    users({ em }) {
+        return em.find(User_1.User, {});
+    }
 };
 __decorate([
-    (0, type_graphql_1.Mutation)(() => User_1.User),
+    (0, type_graphql_1.Mutation)(() => UserResponse),
     __param(0, (0, type_graphql_1.Arg)("options", () => UsernamePasswordInput)),
     __param(1, (0, type_graphql_1.Ctx)()),
     __metadata("design:type", Function),
@@ -115,6 +149,13 @@ __decorate([
     __metadata("design:paramtypes", [UsernamePasswordInput, Object]),
     __metadata("design:returntype", Promise)
 ], UserResolver.prototype, "login", null);
+__decorate([
+    (0, type_graphql_1.Query)(() => [User_1.User]),
+    __param(0, (0, type_graphql_1.Ctx)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], UserResolver.prototype, "users", null);
 UserResolver = __decorate([
     (0, type_graphql_1.Resolver)()
 ], UserResolver);
