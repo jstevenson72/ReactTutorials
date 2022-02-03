@@ -100,7 +100,7 @@ let UserResolver = class UserResolver {
         await em.persistAndFlush(user);
         return { user };
     }
-    async login(options, { em }) {
+    async login(options, { em, req }) {
         const user = await em.findOne(User_1.User, {
             username: options.username,
         });
@@ -125,9 +125,18 @@ let UserResolver = class UserResolver {
                 ],
             };
         }
+        req.session.userId = user.id;
         return {
             user,
         };
+    }
+    async me({ em, req }) {
+        var _a;
+        if (!((_a = req.session) === null || _a === void 0 ? void 0 : _a.userId)) {
+            return null;
+        }
+        const user = await em.findOne(User_1.User, { id: req.session.userId });
+        return user;
     }
     users({ em }) {
         return em.find(User_1.User, {});
@@ -149,6 +158,13 @@ __decorate([
     __metadata("design:paramtypes", [UsernamePasswordInput, Object]),
     __metadata("design:returntype", Promise)
 ], UserResolver.prototype, "login", null);
+__decorate([
+    (0, type_graphql_1.Query)(() => User_1.User, { nullable: true }),
+    __param(0, (0, type_graphql_1.Ctx)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], UserResolver.prototype, "me", null);
 __decorate([
     (0, type_graphql_1.Query)(() => [User_1.User]),
     __param(0, (0, type_graphql_1.Ctx)()),
