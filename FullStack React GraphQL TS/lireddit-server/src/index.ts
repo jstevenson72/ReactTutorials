@@ -21,6 +21,8 @@ const main = async () => {
   // Migrate any Datamodel Changes to the Database
   await orm.getMigrator().up();
 
+  const cors = require("cors");
+
   // Setup Node.js Server
   const app = express();
 
@@ -59,8 +61,40 @@ const main = async () => {
   // Start GraphQL within Node.js Server
   await apolloServer.start();
 
-  var cors = require("cors");
-  app.use(cors({ credentials: true, origin: "http://localhost:4000" }));
+  // var mw = apolloServer.getMiddleware({
+  //   cors: {
+  //     credentials: true,
+  //     origin: "*",
+  //     preflightContinue: true,
+  //   },
+  // });
+
+  // Access-Control-Allow-Origin: https://studio.apollographql.com
+  // Access-Control-Allow-Credentials: true
+  app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*"); // update to match the domain you will make the request from
+    res.header(
+      "Access-Control-Allow-Headers",
+      "Origin, X-Requested-With, Content-Type, Accept"
+    );
+
+    // Set custom headers for CORS
+    res.header(
+      "Access-Control-Allow-Headers",
+      "Content-type,Accept,X-Custom-Header"
+    );
+
+    if (req.method === "OPTIONS") {
+      return res.status(200).end();
+    }
+
+    return next();
+  });
+
+  //app.use(cors());
+
+  // var cors = require("cors");
+  // app.use(cors({ credentials: true, origin: "http://localhost:4000" }));
 
   // Register Redis with Node.js Server
   app.use(
@@ -82,8 +116,42 @@ const main = async () => {
     })
   );
 
+  var whitelist = [
+    "http://127.0.0.1:4000",
+    "https://studio.apollographql.com",
+    "http://localhost:4000",
+  ];
+  var corsOptions = {
+    origin: function (
+      origin: string,
+      callback: (arg0: null, arg1: boolean) => void
+    ) {
+      var originIsWhitelisted = whitelist.indexOf(origin) !== -1;
+      callback(null, originIsWhitelisted);
+    },
+    credentials: true,
+  };
+  app.use(cors(corsOptions));
+
+  // module.exports = (req, res, next) => {
+  //   // CORS headers
+  //   res.header("Access-Control-Allow-Origin", "YOUR_URL"); // restrict it to the required domain
+  //   res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+  //   // Set custom headers for CORS
+  //   res.header(
+  //     "Access-Control-Allow-Headers",
+  //     "Content-type,Accept,X-Custom-Header"
+  //   );
+
+  //   if (req.method === "OPTIONS") {
+  //     return res.status(200).end();
+  //   }
+
+  //   return next();
+  // };
+
   // Setup GraphQL Server
-  apolloServer.applyMiddleware({ app, cors: false });
+  apolloServer.applyMiddleware({ app });
 
   // Start Node Listening for Requests
   app.listen(4000, () => {
