@@ -41,10 +41,10 @@ const main = async () => {
   //   credentials: true,
   // };
 
-  var corsOptions = {
-    origin: "*",
-    credentials: true,
-  };
+  // var corsOptions = {
+  //   origin: "*",
+  //   credentials: true,
+  // };
 
   // Start Apollo Server
   const apolloServer = new ApolloServer({
@@ -52,7 +52,7 @@ const main = async () => {
       resolvers: [HelloResolver, PostResolver, UserResolver],
       validate: false,
     }),
-    //    cors: cors(corsOptions),
+    //cors: cors(corsOptions),
     context: ({ req, res }): MyContext => ({ em: orm.em, req, res }),
   });
 
