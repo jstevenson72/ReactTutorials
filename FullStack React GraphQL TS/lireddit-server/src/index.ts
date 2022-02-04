@@ -35,22 +35,32 @@ const main = async () => {
   });
   redisClient.connect();
 
+  // CORS configuration
+  // const corsOptions = {
+  //   origin: "http://localhost:4000",
+  //   credentials: true,
+  // };
+
+  var corsOptions = {
+    origin: "*",
+    credentials: true,
+  };
+
   // Start Apollo Server
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
       resolvers: [HelloResolver, PostResolver, UserResolver],
       validate: false,
     }),
+    //    cors: cors(corsOptions),
     context: ({ req, res }): MyContext => ({ em: orm.em, req, res }),
-  });
-
-  // Start Node Listening for Requests
-  app.listen(4000, () => {
-    console.log("web server started on localhost:4000");
   });
 
   // Start GraphQL within Node.js Server
   await apolloServer.start();
+
+  var cors = require("cors");
+  app.use(cors({ credentials: true, origin: "http://localhost:4000" }));
 
   // Register Redis with Node.js Server
   app.use(
@@ -73,11 +83,12 @@ const main = async () => {
   );
 
   // Setup GraphQL Server
-  var cors = require("cors");
-  //app.options("*", cors());
-  app.use(cors());
+  apolloServer.applyMiddleware({ app, cors: false });
 
-  apolloServer.applyMiddleware({ app, cors });
+  // Start Node Listening for Requests
+  app.listen(4000, () => {
+    console.log("web server started on localhost:4000");
+  });
 };
 
 main().catch((err) => {

@@ -27,6 +27,10 @@ const main = async () => {
         console.log("Redis error: " + err);
     });
     redisClient.connect();
+    var corsOptions = {
+        origin: "*",
+        credentials: true,
+    };
     const apolloServer = new apollo_server_express_1.ApolloServer({
         schema: await (0, type_graphql_1.buildSchema)({
             resolvers: [hello_1.HelloResolver, post_1.PostResolver, User_1.UserResolver],
@@ -34,10 +38,9 @@ const main = async () => {
         }),
         context: ({ req, res }) => ({ em: orm.em, req, res }),
     });
-    app.listen(4000, () => {
-        console.log("web server started on localhost:4000");
-    });
     await apolloServer.start();
+    var cors = require("cors");
+    app.use(cors({ credentials: true, origin: "http://localhost:4000" }));
     app.use((0, express_session_1.default)({
         name: "qid",
         store: new RedisStore({
@@ -54,9 +57,10 @@ const main = async () => {
         resave: false,
         saveUninitialized: false,
     }));
-    var cors = require("cors");
-    app.use(cors());
-    apolloServer.applyMiddleware({ app, cors });
+    apolloServer.applyMiddleware({ app, cors: false });
+    app.listen(4000, () => {
+        console.log("web server started on localhost:4000");
+    });
 };
 main().catch((err) => {
     console.error(err);
